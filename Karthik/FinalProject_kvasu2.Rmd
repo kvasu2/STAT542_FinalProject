@@ -20,6 +20,8 @@ The best accuracy we found was by a GitHub user named [_Andy Brock_](https://git
 
 @xiao2017/online test out a variety of classifiers including Decision Tree ,Gradient Boosting, K Neighbors, Linear SVC, Logistic Regression and many more. They achieve the best result using the SVC classifier with C=10 and the rbf kernel. The testing accuracy for this algorithm is 89.7% on the fashion data set and 97.3% on the original MNIST data. Gradient boosting performs well with testing accuracy at 88% and 96.9% respectively. This is achieved for n_estimators=100 and max_depth=10.
 
+%%one more paper to be added%%
+
 
 ```{r, echo=FALSE}
 train = read.csv("fashion-mnist_train.csv")
@@ -31,6 +33,8 @@ Ytrain = train[,1]
 Xtest = test[,2:785]
 Ytest = test[,1]
 ```
+
+## Summary Statistics
 
 Data table
 ```{r, echo=FALSE}
