@@ -37,3 +37,11 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# Temp data
+.RDataTmp
+
+# Data files
+fashion-mnist_test.csv
+fashion-mnist_train.csv
+

@@ -1,0 +1,40 @@
+---
+title: 'STAT 542: Final Project'
+author: "Karthik Vasu (kvasu2)"
+date: 'Due: 05/05/2022'
+theme: readable
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: 2
+header-includes:
+  - \usepackage{amsmath}
+---
+
+
+```{r}
+train = read.csv("fashion-mnist_train.csv")
+test = read.csv("fashion-mnist_test.csv")
+
+Xtrain = train[,2:785]
+Ytrain = train[,1]
+
+Xtest = test[,2:785]
+Ytest = test[,1]
+```
+
+```{r}
+table(Ytrain)
+table(Ytest)
+```
+Pre processing
+```{r}
+#Centering and scaling
+
+
+```
+
+
+
+
+
