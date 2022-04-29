@@ -1,0 +1,25 @@
+---
+title: 'STAT 542: Final Project'
+author: "Karthik Vasu (kvasu2), Yining Lu (yining13)"
+date: 'Due: 05/05/2022'
+theme: readable
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: 2
+bibliography: references.bib
+header-includes:
+  - \usepackage{amsmath}
+---
+
+# Literature review
+
+The Fashion-MNIST data set has been created by researchers at Zalando for the purposes of benchmarking ML algorithms. It consists of 70000 grayscale images of dimension 28*28. These are images of clothing articles like T-shirt, Trouser, Pullover etc with 60000 training samples and 10000 testing samples. The purpose of this data set is to provide a more challenging classifying compared to the original MNIST data. There are algorithms which 99% accuracy on this making it too easy for modern algorithms.
+
+The best accuracy we found was by a GitHub user named [_Andy Brock_](https://github.com/ajbrock) who was able to achieve an accuracy of 96.7% using wide residual networks. A lot of people have implemented algorithms with high accuracy. They can be for on [_Zalando Research's GitHub page_](https://github.com/zalandoresearch/fashion-mnist).
+
+@xiao2017/online test out a variety of classifiers including Decision Tree ,Gradient Boosting, K Neighbors, Linear SVC, Logistic Regression and many more. They achieve the best result using the SVC classifier with C=10 and the rbf kernel. The testing accuracy for this algorithm is 89.7% on the fashion data set and 97.3% on the original MNIST data. Gradient boosting performs well with testing accuracy at 88% and 96.9% respectively. This is achieved for n_estimators=100 and max_depth=10.
+
+@meshkini2019analysis perform classification on the Fashion-MNIST data set using convolutional neural networks. They compare the performance of several well-known deep learning frameworks, such as AlexNet, GoogleNet, VGG and ResNet, DenseNet and SqueezeNet. The authors also propose an additional step of batch normalization to enhance the training speed and accuracy of the model. The best results are achieved by ResNet44 and SqueezeNet with batch normalization with testing accuracy at 93.39% and 93.43% respectively. 
+
+# References
