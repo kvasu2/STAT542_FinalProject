@@ -12,7 +12,7 @@ header-includes:
   - \usepackage{amsmath}
 ---
 
-## Literature review
+# Literature review
 
 The Fashion-MNIST data set has been created by researchers at Zalando for the purposes of benchmarking ML algorithms. It consists of 70000 grayscale images of dimension 28*28. These are images of clothing articles like T-shirt, Trouser, Pullover etc with 60000 training samples and 10000 testing samples. The purpose of this data set is to provide a more challenging classifying compared to the original MNIST data. There are algorithms which 99% accuracy on this making it too easy for modern algorithms.
 
@@ -34,21 +34,88 @@ Xtest = test[,2:785]
 Ytest = test[,1]
 ```
 
-## Summary Statistics
+# Summary Statistics
 
 Data table
 ```{r, echo=FALSE}
 table(Ytrain)
 table(Ytest)
 ```
-Pre processing
+
+# Pre processing
+
 ```{r}
-#Centering and scaling
+X.train.sca = scale(Xtrain)
+```
+
+
+# Clustering
+
+## 1.KMeans
+
+```{r}
+library(plyr)
+set.seed(1)
+
+k=20
+kmeans = kmeans(Xtrain, centers =k)
+
+cluster_prediction = rep(NA,k)
+#cluster_accuracy = matrix(rep(NA,2*k), nrow = k)
+cluster_accuracy = matrix(nrow = k,ncol = 2)
+clusters = split(Ytrain,kmeans$cluster)
+for (i in 1:k) {
+  x = as.data.frame(unlist(clusters[i]))
+  y = count(x)
+  max = which.max(y[,2])
+  cluster_prediction[i] = y[max,1]
+  s = sum(y[,2])
+  cluster_accuracy[i,1] = y[max,2]/s
+  cluster_accuracy[i,2] = s
+}
+
+weighted_cluster_accuracy =100* (t(cluster_accuracy[,1]) %*% cluster_accuracy[,2])/sum(cluster_accuracy[,2])
+
+```
+
+```{r}
+cluster_prediction
+weighted_cluster_accuracy
+```
+## 2.PCA
+
+```{r}
+pca = princomp(X.train.sca)
 
 
 ```
 
-## References
+```{r}
+X.pca = pca$scores[,1:25]
+k=30
+kmeans = kmeans(X.pca, centers =k)
+
+cluster_prediction = rep(NA,k)
+#cluster_accuracy = matrix(rep(NA,2*k), nrow = k)
+cluster_accuracy = matrix(nrow = k,ncol = 2)
+clusters = split(Ytrain,kmeans$cluster)
+for (i in 1:k) {
+  x = as.data.frame(unlist(clusters[i]))
+  y = count(x)
+  max = which.max(y[,2])
+  cluster_prediction[i] = y[max,1]
+  s = sum(y[,2])
+  cluster_accuracy[i,1] = y[max,2]/s
+  cluster_accuracy[i,2] = s
+}
+
+weighted_cluster_accuracy =100* (t(cluster_accuracy[,1]) %*% cluster_accuracy[,2])/sum(cluster_accuracy[,2])
+cluster_prediction
+weighted_cluster_accuracy
+```
+
+
+# References
 
 
 
