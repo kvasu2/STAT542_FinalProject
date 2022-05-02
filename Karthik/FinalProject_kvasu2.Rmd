@@ -20,7 +20,7 @@ The best accuracy we found was by a GitHub user named [_Andy Brock_](https://git
 
 @xiao2017/online test out a variety of classifiers including Decision Tree ,Gradient Boosting, K Neighbors, Linear SVC, Logistic Regression and many more. They achieve the best result using the SVC classifier with C=10 and the rbf kernel. The testing accuracy for this algorithm is 89.7% on the fashion data set and 97.3% on the original MNIST data. Gradient boosting performs well with testing accuracy at 88% and 96.9% respectively. This is achieved for n_estimators=100 and max_depth=10.
 
-%%one more paper to be added%%
+@meshkini2019analysis perform classification on the Fashion-MNIST data set using convolutional neural networks. They compare the performance of several well-known deep learning frameworks, such as AlexNet, GoogleNet, VGG and ResNet, DenseNet and SqueezeNet. The authors also propose an additional step of batch normalization to enhance the training speed and accuracy of the model. The best results are achieved by ResNet44 and SqueezeNet with batch normalization with testing accuracy at 93.39% and 93.43% respectively. 
 
 
 ```{r, echo=FALSE}
@@ -44,26 +44,70 @@ table(Ytest)
 
 # Pre processing
 
-```{r}
+Before using PCA we have scaled and centered the data.
+
+```{r, echo=FALSE}
 X.train.sca = scale(Xtrain)
 ```
 
-
-# Clustering
-
 ## 1.PCA
 
-```{r}
+We perform PCA on the training data set and plot the standard deviation of each of the components in descending order. Using the elbow method the cutoff we choose is 1.75 and take all the components which have standard deviation above that value. It gives 28 components.
+
+```{r , echo=FALSE}
 library(plyr)
 set.seed(1)
 
 pca = princomp(X.train.sca)
 ```
 
+```{r, echo=FALSE}
+plot(pca$sdev,ylab = "Standard Deviation")
+elbow=count(pca$sdev > 1.75)$freq[2]
+X.pca = pca$scores[,1:elbow]
+```
 
-```{r}
-X.pca = pca$scores[,1:25]
-k=50
+# Clustering
+
+## Kmeans
+
+To first determine which K to use we run the kmeans algorithm for k =10,20,...,100 and measure for each cluster the ration # of votes the majority label got/ total number of elements in the clustes. We also sum over all the clusters by weighing the ratios according to the cluster size. The plot of this cluster confidence vs K is as follows.
+```{r, echo=FALSE, warning=FALSE}
+allk = seq(10,100,10)
+wcc = rep(NA,length(allk))
+
+for (l in 1:length(allk)) {
+  k = allk[l]
+  kmeans = kmeans(X.pca, centers =k)
+
+  cluster_prediction = rep(NA,k)
+  #cluster_accuracy = matrix(rep(NA,2*k), nrow = k)
+  cluster_confidence = matrix(nrow = k,ncol = 2)
+  clusters = split(Ytrain,kmeans$cluster)
+  for (i in 1:k) {
+    x = as.data.frame(unlist(clusters[i]))
+    y = count(x)
+    max = which.max(y[,2])
+    cluster_prediction[i] = y[max,1]
+    s = sum(y[,2])
+    cluster_confidence[i,1] = y[max,2]/s
+    cluster_confidence[i,2] = s
+  }
+  
+  wcc[l] =(t(cluster_confidence[,1]) %*% cluster_confidence[,2])/sum(cluster_confidence[,2])
+}
+```
+
+
+```{r, echo=FALSE}
+plot(allk,wcc,xlab = "K", ylab = "Cluster confidence",pch=19)
+```
+
+From this plot we can see that as we increase K the confidence increases. We choose K=100 so that to get the best clustering while keeping computation time low.
+
+
+```{r, echo=FALSE, warning=FALSE}
+k=100
 kmeans = kmeans(X.pca, centers =k)
 
 cluster_prediction = rep(NA,k)
@@ -79,11 +123,23 @@ for (i in 1:k) {
   cluster_confidence[i,1] = y[max,2]/s
   cluster_confidence[i,2] = s
 }
+```
 
+The majority label in each cluster and the cluster confidence % are as follows
+
+```{r, echo=FALSE}
 weighted_cluster_confidence =100* (t(cluster_confidence[,1]) %*% cluster_confidence[,2])/sum(cluster_confidence[,2])
 cluster_prediction
 weighted_cluster_confidence
 ```
+
+```{r, echo=FALSE}
+#This code is for visualizing this clusters and the first two components. Its not very informative.
+#library(cluster)
+#clusplot(X.pca,kmeans$cluster,color=T,shade=T)
+```
+
+
 
 
 # References
