@@ -51,53 +51,24 @@ X.train.sca = scale(Xtrain)
 
 # Clustering
 
-## 1.KMeans
+## 1.PCA
 
 ```{r}
 library(plyr)
 set.seed(1)
 
-k=20
-kmeans = kmeans(Xtrain, centers =k)
-
-cluster_prediction = rep(NA,k)
-#cluster_accuracy = matrix(rep(NA,2*k), nrow = k)
-cluster_accuracy = matrix(nrow = k,ncol = 2)
-clusters = split(Ytrain,kmeans$cluster)
-for (i in 1:k) {
-  x = as.data.frame(unlist(clusters[i]))
-  y = count(x)
-  max = which.max(y[,2])
-  cluster_prediction[i] = y[max,1]
-  s = sum(y[,2])
-  cluster_accuracy[i,1] = y[max,2]/s
-  cluster_accuracy[i,2] = s
-}
-
-weighted_cluster_accuracy =100* (t(cluster_accuracy[,1]) %*% cluster_accuracy[,2])/sum(cluster_accuracy[,2])
-
-```
-
-```{r}
-cluster_prediction
-weighted_cluster_accuracy
-```
-## 2.PCA
-
-```{r}
 pca = princomp(X.train.sca)
-
-
 ```
+
 
 ```{r}
 X.pca = pca$scores[,1:25]
-k=30
+k=50
 kmeans = kmeans(X.pca, centers =k)
 
 cluster_prediction = rep(NA,k)
 #cluster_accuracy = matrix(rep(NA,2*k), nrow = k)
-cluster_accuracy = matrix(nrow = k,ncol = 2)
+cluster_confidence = matrix(nrow = k,ncol = 2)
 clusters = split(Ytrain,kmeans$cluster)
 for (i in 1:k) {
   x = as.data.frame(unlist(clusters[i]))
@@ -105,13 +76,13 @@ for (i in 1:k) {
   max = which.max(y[,2])
   cluster_prediction[i] = y[max,1]
   s = sum(y[,2])
-  cluster_accuracy[i,1] = y[max,2]/s
-  cluster_accuracy[i,2] = s
+  cluster_confidence[i,1] = y[max,2]/s
+  cluster_confidence[i,2] = s
 }
 
-weighted_cluster_accuracy =100* (t(cluster_accuracy[,1]) %*% cluster_accuracy[,2])/sum(cluster_accuracy[,2])
+weighted_cluster_confidence =100* (t(cluster_confidence[,1]) %*% cluster_confidence[,2])/sum(cluster_confidence[,2])
 cluster_prediction
-weighted_cluster_accuracy
+weighted_cluster_confidence
 ```
 
 
