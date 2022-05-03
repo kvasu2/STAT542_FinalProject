@@ -34,12 +34,6 @@ table(Ytrain)
 table(Ytest)
 ```
 
-# Multi-class Classification Model
-
-- We have learned several different models that can perform multi-class classification. In this question, choose two of them and properly tune these models. Report the overall classification error and provide sufficient information (table/figure and descriptions) to demonstrate the model fitting results.
-
-- Many models we learned are only for binary classifications. Try to extend one of them to handle multi-class problems. You can either search the existing literature to implement the method (or use their packages) or write your own code based on an ideal you have. Clearly describe your method framework, demonstrate the results and compare that with the two previous models.
-
 # LDA
 
 ```{r}
