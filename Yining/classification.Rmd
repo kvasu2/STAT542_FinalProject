@@ -57,7 +57,7 @@ In One-vs-Rest approach, we fit SVM models to distinguish points of one certain 
 
 One-vs-Rest approach is more computationally efficient than One-vs-One approach, since it only need to fit k SVM models while One-vs-One approach need to fit $\frac{k(k-1)}{2}$ models. However, in One-vs-Rest approach, the training data is unbalanced since the ratio of training data from each class is $1:(k-1)$, which may cause biase.
 
-We fit the multiclass SVM model using One-vs-One approach, with using radial basis kernel. The overall mis-classification rate of kernel SVM is 0.188 and the accuracy is 0.812. The kernel SVM classifier outperforms k-NN and LDA. 
+We fit the multiclass SVM model using One-vs-One approach, with using radial basis kernel. The overall mis-classification rate of kernel SVM is 0.09 and the accuracy is 0.91. The kernel SVM classifier outperforms k-NN and LDA. 
 
 ```{r, echo=F, warning=F, fig.align='center', fig.cap='Kernel SVM (rbf)', fig.subcap= c('Confusion Matrix', 'Mis-classification Rate', '1', '2'), out.width = '50%'}
 colnames(misclass_svm) = c("class", "mis-classification")
@@ -66,7 +66,7 @@ grid.newpage()
 grid.table(rbind(misclass_svm, c("overall", round(overall_misclass_svm,3))), theme = ttheme_minimal())
 ```
 
-In addition, a linear SVM model is constructed to compare with the RBF kernel. The overall mis-classification rate of SVM is 0.09 and the accuracy is 0.91.
+In addition, a linear SVM model is constructed to compare with the RBF kernel. The overall mis-classification rate of linear SVM is 0.188 and the accuracy is 0.812.
 
 Though linear SVM model does not perform better than k-NN and LDA, SVM with RBF kernel have a quite good performance on classification, which achieves an overall accuracy of 90%.
 
