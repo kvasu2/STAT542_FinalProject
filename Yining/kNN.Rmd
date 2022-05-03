@@ -39,11 +39,7 @@ Xtrain = scale(Xtrain)
 Ytrain = scale(Ytrain)
 ```
 
-# Multi-class Classification Model
-
-- We have learned several different models that can perform multi-class classification. In this question, choose two of them and properly tune these models. Report the overall classification error and provide sufficient information (table/figure and descriptions) to demonstrate the model fitting results.
-
-- Many models we learned are only for binary classifications. Try to extend one of them to handle multi-class problems. You can either search the existing literature to implement the method (or use their packages) or write your own code based on an ideal you have. Clearly describe your method framework, demonstrate the results and compare that with the two previous models.
+# kNN
 
 ```{r}
 # kNN
@@ -59,13 +55,10 @@ for (i in 1:nfold) {
     errMatrix[k,i] = mean(class_knn != Ytrain[infold==i])
   }
 }
-best_k = allk[which.min(apply(errMatrix,1,mean))]
-```
-
-```{r}
 # Error vs k
 plot(allk, apply(errMatrix,1,mean), main="k-NN", xlab="k", 
      ylab="mis-classification rate", col="deepskyblue", type="l", lwd=2)
+best_k = allk[which.min(apply(errMatrix,1,mean))]
 best_k
 ```
 
@@ -87,6 +80,8 @@ misclass = cbind(class, round(misclass_rate,3))
 # overall mis-classification rate
 overall_misclass = mean(Ytest_pred != Ytest)
 ```
+
+# Save
 
 ```{r}
 save.image(file ="RData/knn.RData")
