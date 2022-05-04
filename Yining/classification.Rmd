@@ -68,7 +68,7 @@ grid.table(rbind(misclass_svm, c("overall", round(overall_misclass_svm,3))), the
 
 In addition, a linear SVM model is constructed to compare with the RBF kernel. The overall mis-classification rate of linear SVM is 0.188 and the accuracy is 0.812.
 
-Though linear SVM model does not perform better than k-NN and LDA, SVM with RBF kernel have a quite good performance on classification, which achieves an overall accuracy of 90%.
+Though linear SVM model does not perform better than k-NN and LDA, SVM with RBF kernel have a quite good performance on classification, which achieves an overall accuracy of 91%.
 
 ```{r, echo=F, warning=F, fig.align='center', fig.cap='Linear SVM', fig.subcap= c('Confusion Matrix', 'Mis-classification Rate'), out.width = '50%'}
 colnames(misclass_lsvm) = c("class", "mis-classification")

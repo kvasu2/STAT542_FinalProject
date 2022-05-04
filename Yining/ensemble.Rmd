@@ -1,0 +1,129 @@
+---
+title: 'STAT 542: Final Project'
+author: "Karthik Vasu (kvasu2), Yining Lu (yining13)"
+date: 'Due: 05/05/2022'
+theme: readable
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: 2
+bibliography: references.bib
+header-includes:
+  - \usepackage{amsmath}
+---
+
+```{r, echo=FALSE}
+train = read.csv("dataset/fashion-mnist_train.csv")
+test = read.csv("dataset/fashion-mnist_test.csv")
+```
+
+```{r, warning=F}
+Xtrain = train[1:6000,2:785]
+Ytrain = train[1:6000,1]
+
+Xtest = test[,2:785]
+Ytest = test[,1]
+```
+
+# Summary Statistics
+
+Data table
+
+```{r, echo=FALSE}
+table(Ytrain)
+table(Ytest)
+```
+
+# Ensemble Model
+
+```{r, warning=F}
+# first stage with svm
+library(kernlab)
+k = 1
+index = list()
+svm.fit = list()
+mXtrain = as.matrix(Xtrain)
+for (i in 1:10) {
+  index[[i]] = which(Ytrain == i-1)
+}
+for (i in 1:10) {
+    ind = index[[i]]
+    y = rep(0, nrow(mXtrain))
+    y[ind] = 1
+    svm.fit[[i]] = ksvm(mXtrain, y, type="C-svc", kernel="rbfdot",
+                        C=10, scaled=c(), prob.model = TRUE)
+    #print(i)
+}
+```
+
+```{r, warning=F}
+# get probabilities for each class
+prob = matrix(NA, nrow=nrow(mXtrain), ncol=10)
+for (i in 1:10) {
+  prob[,i] = predict(svm.fit[[i]], Xtrain, type="probabilities")[,2]
+}
+```
+
+```{r, warning=F}
+# second stage with random forest
+set.seed(2)
+library(randomForest)
+rf.fit = randomForest(as.factor(Ytrain)~., data=data.frame(prob, Ytrain), proximity=T)
+print(rf.fit)
+```
+
+```{r, warning=F}
+prob_pred = matrix(NA, nrow=nrow(Xtest), ncol=10)
+for (i in 1:10) {
+  prob_pred[,i] = predict(svm.fit[[i]], Xtest, type="probabilities")[,2]
+}
+```
+
+```{r, warning=F}
+# error for ensemble model
+Ytest_pred_en <- predict(rf.fit, data.frame(prob_pred, Ytest))
+# confusion matrix
+confuse_en = table(Ytest, Ytest_pred_en)
+# mis-classification rate
+misclass_rate_en = rep(NA, 10)
+number = rep(NA, 10)
+for (i in 1:10) {
+  misclass_rate_en[i] = 1 - confuse_en[i,i]/sum(confuse_en[,i])
+}
+class = 0:9
+misclass_en = cbind(class, round(misclass_rate_en,3))
+# overall mis-classification rate
+overall_misclass_en = mean(Ytest_pred_en != Ytest)
+confuse_en
+misclass_en
+overall_misclass_en
+```
+
+```{r, warning=F}
+# error for pure svm
+Ytest_pred_ksvm = rep(NA, nrow(Xtest))
+for (i in 1:nrow(Xtest)) {
+  Ytest_pred_ksvm[i] = which.max(prob_pred[i,])-1
+}
+# confusion matrix
+confuse_ksvm = table(Ytest, Ytest_pred_ksvm)
+# mis-classification rate
+misclass_rate_ksvm = rep(NA, 10)
+number = rep(NA, 10)
+for (i in 1:10) {
+  misclass_rate_ksvm[i] = 1 - confuse_ksvm[i,i]/sum(confuse_ksvm[,i])
+}
+class = 0:9
+misclass_ksvm = cbind(class, round(misclass_rate_ksvm,3))
+# overall mis-classification rate
+overall_misclass_ksvm = mean(Ytest_pred_ksvm != Ytest)
+confuse_ksvm
+misclass_ksvm
+overall_misclass_ksvm
+```
+
+# Save
+
+```{r, echo=F}
+save.image(file ="RData/ensemble.RData")
+```
