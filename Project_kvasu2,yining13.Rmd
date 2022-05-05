@@ -18,13 +18,13 @@ header-includes:
 
 This project is on implementing classification algorithm on the Fashion-MNIST dataset. To begin with we pre process the data using PCA to extract enough useful information so that the data contains a signal but also reduce it enough for the algorithms to be fast.
 
-First we try a Kmeans unsupervised algorithm to cluster the data hoping that it will be able to divide the labels. Unfortunately the clusters we get even with taking K=100 don't have a uniform label. There are a lot of mixed labels in each cluster. The ratio of majority vote in cluster to total cluster size we get is 73%, which is low.
+First we try a K-means unsupervised algorithm to cluster the data hoping that it will be able to divide the labels. Unfortunately the clusters we get even with taking K=100 don't have a uniform label. There are a lot of mixed labels in each cluster. The ratio of majority vote in cluster to total cluster size we get is 73%, which is low.
 
-Next we try supervised learning. We try 4 different methods. LDA, kNN, linear SVM and kernel SVM. We use 5 fold cross validation to tune the parameter k in kNN. The best k we achieve is k=10. This 10-NN algorithm gives us an accuracy of 85.6%. This is slightly higher than the LDA case where the accuracy is 82.6%. The SVM clssifier is a binary classifier which we adapt to our multi class classification by using two approaches. One vs Rest and One vs One. We use the One vs One approach which achieves an accuracy of 81.2% in the linear version and 91% in the kernel version. This clearly outperforms the previous two algorithms.
+Next we try supervised learning. We try 4 different methods, random forest, k-NN, linear SVM and kernel SVM. We use 5 fold cross validation to tune the parameter k in k-NN. The best k we achieve is k=10. The 10-NN algorithm gives us an accuracy of 85.6%. Random forest achieves the accuracy of 88.5%, which is better than that of 10-NN. The SVM classifier is a binary classifier which we adapt to our multiclass classification by using two approaches, One vs Rest and One vs One. We use the One vs One approach which achieves an accuracy of 81.2% in the linear version and 90.8% in the kernel version. This clearly outperforms the previous two algorithms.
 
-Finally we create and ensemble model using multiple classifiers. We use kNN, random forest, kernel SVM and PCA-SVM(SVM after performing PCA). After fitting these models we use the majority vote to predict the final label. The ensemble model performs marginally better than the SVM model to get an accuracy of 91.8%.
+Finally we create and ensemble model using multiple classifiers. We use kNN, random forest, kernel SVM and PCA-SVM(SVM after performing PCA). After fitting these models, we use the majority vote to predict the final label. The ensemble model performs marginally better than the SVM model to get an accuracy of 91.1%.
 
-In conclusion the ensemble model performs the best, but it has high computational cost as it has to train multiple models. The advantage of the ensemble model is that it is flexible.
+In conclusion, the ensemble model performs the best, but it has high computational cost as it has to train multiple models. The advantage of the ensemble model is that it is flexible.
 
 # Literature review
 
@@ -44,7 +44,7 @@ library(gridExtra)
 library(grid)
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning=F}
 train = read.csv("Karthik/fashion-mnist_train.csv")
 test = read.csv("Karthik/fashion-mnist_test.csv")
 
@@ -58,7 +58,7 @@ Ytest = test[,1]
 # Summary Statistics
 
 Data table
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning=F}
 table(Ytrain)
 table(Ytest)
 ```
@@ -85,7 +85,7 @@ include_graphics("Karthik/data/pca_sd.png")
 To first determine which K to use we run the kmeans algorithm for k =10,20,...,100 and measure for each cluster the ration # of votes the majority label got/ total number of elements in the clustes. We also sum over all the clusters by weighing the ratios according to the cluster size. The plot of this cluster confidence vs K is as follows.
 
 
-```{r, echo=FALSE ,fig.align='center', fig.cap='Cluster confidence vs K', out.height='50%', out.width = '50%'}
+```{r, echo=FALSE, warning=F, fig.align='center', fig.cap='Cluster confidence vs K', out.height='50%', out.width = '50%'}
 include_graphics("Karthik/data/best_k.png")
 ```
 
@@ -93,15 +93,17 @@ From this plot we can see that as we increase K the confidence increases. We cho
 
 The cluster confidence is 73.58% and the majority label in each cluster are as follows
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, warning=F}
 
 cluster_prediction = t(read.csv("Karthik/data/kmeans_prediction.csv"))
 print(cluster_prediction)
 ```
- 
-# Classification
 
-In this section, we implement multi-class classification models on the Fashion-MNIST dataset. We first use two algorithms, k-Nearest Neighbor (k-NN) and Linear Discriminant Analysis (LDA), which can be directly used for multiclass classification. Then, we extend Support Vector Machine (SVM), which is a binary classifier, to handle the multiclass case.
+\clearpage
+
+# Multi-class Classification Model
+
+In this section, we implement multi-class classification models on the Fashion-MNIST dataset. We first use two algorithms, k-Nearest Neighbor (k-NN) and random forest, which can be directly used for multiclass classification. Then, we extend Support Vector Machine (SVM), which is a binary classifier, to handle the multiclass case.
 
 ## k-Nearest Neighbors
 
@@ -110,12 +112,16 @@ We first implement k-NN classification model to classify the Fashion-MNIST data.
 To determine the parameter k, we use 5-fold cross-validation and calculate the overall mis-classification rate for each k. The figure shows the relation between mis-classification rate and k. We find that the best mis-classification rate is reached at $k = 10$.
 
 ```{r, echo=F, warning=F, fig.align='center', fig.cap='5-fold CV Mis-classification Rate', out.height='50%', out.width = '50%'}
+library(knitr)
+library(kableExtra)
+library(gridExtra)
+library(grid)
 load("Yining/RData/knn.RData")
-
+load("Yining/RData/rf_svm.RData")
 include_graphics("Yining/graph/knn_cv.png")
 ```
 
-Based on the result of cross-valiadation, we choose $k = 10$ to fit the k-NN model. The confusion matrix and mis-classification rate for each class are shown in the following two tables. For Fashion-MNIST data, the overall mis-classification rate of the 10-NN classifier is 0.144 and the accuracy is 0.856.
+Based on the result of cross-valiadation, we choose $k = 10$ to fit the k-NN model. The confusion matrix and mis-classification rate for each class are shown in the following two tables. For Fashion-MNIST data, the overall mis-classification rate of the 10-NN classifier is 0.144 and the testing accuracy is 0.856.
 
 ```{r, echo=F, warning=F, fig.align='center', fig.cap='10-NN', fig.subcap= c('Confusion Matrix', 'Mis-classification Rate'), out.width = '50%'}
 colnames(misclass) = c("class", "mis-classification")
@@ -124,21 +130,20 @@ grid.newpage()
 grid.table(rbind(misclass, c("overall", round(overall_misclass,3))), theme = ttheme_minimal())
 ```
 
-## LDA
+## Random Forest
 
-We then classify the Fashion-MNIST data using the LDA classifier. The confusion matrix and mis-classification rate for each class are shown in the following two tables. The overall mis-classification rate of the LDA classifier is 0.174 and the accuracy is 0.826. We find that the accuracy of LDA classifier is slightly lower than that of 10-kNN classifer. 
+We then classify the Fashion-MNIST data using the random forest. The confusion matrix and mis-classification rate for each class are shown in the following two tables. The overall mis-classification rate of random forest is 0.115 and the testing accuracy is 0.885. The results show that random forest has a better performance than 10-NN classifer. 
 
-```{r, echo=F, warning=F, fig.align='center', fig.cap='LDA', fig.subcap= c('Confusion Matrix', 'Mis-classification Rate'), out.width = '50%'}
-load("Yining/RData/lda_svm.RData")
-colnames(misclass_lda) = c("class", "mis-classification")
-include_graphics("Yining/graph/lda_confuse.png")
+```{r, echo=F, warning=F, fig.align='center', fig.cap='Random Forest', fig.subcap= c('Confusion Matrix', 'Mis-classification Rate'), out.width = '50%'}
+colnames(misclass_tree) = c("class", "mis-classification")
+include_graphics("Yining/graph/tree_confuse.png")
 grid.newpage()
-grid.table(rbind(misclass_lda, c("overall", round(overall_misclass_lda,3))), theme = ttheme_minimal())
+grid.table(rbind(misclass_tree, c("overall", round(overall_misclass_tree,3))), theme = ttheme_minimal())
 ```
 
-## SVM
+## Support Vector Machine
 
-We have applied two multiclass classifiers k-NN and LDA for the Fashion-MNIST classification. Now, we extend SVM to the multiclass form to solve the classification problem. SVM is a binary classifier and it does not support multiclass classification natively. However, we can break the multiclass classification problem into several binary ones. There are two common methods to extend SVM for multiclass classification, One-vs-One approach and One-vs-Rest approach. 
+We have applied two multiclass classifiers k-NN and random forest for the Fashion-MNIST classification. Now, we extend SVM to the multiclass form to solve the classification problem. SVM is a binary classifier and it does not support multiclass classification natively. However, we can break the multiclass classification problem into several binary ones. There are two common methods to extend SVM for multiclass classification, One-vs-One approach and One-vs-Rest approach. 
 
 In One-vs-One approach, we fit SVM models for every two classes. Each classifier separates points of two different classes. Suppose we have k classes, we then fit $\frac{k(k-1)}{2}$ SVM models. In prediction stage, we input data into all binary classifiers. Each binary classifiers will decide a class that the input is belonged to. We let those binary classifiers vote for the class of input, and the prediction result is the class that most classifiers vote for.
 
@@ -146,7 +151,7 @@ In One-vs-Rest approach, we fit SVM models to distinguish points of one certain 
 
 One-vs-Rest approach is more computationally efficient than One-vs-One approach, since it only need to fit k SVM models while One-vs-One approach need to fit $\frac{k(k-1)}{2}$ models. However, in One-vs-Rest approach, the training data is unbalanced since the ratio of training data from each class is $1:(k-1)$, which may cause biase.
 
-We fit the multiclass SVM model using One-vs-One approach, with using radial basis kernel. The overall mis-classification rate of kernel SVM is 0.09 and the accuracy is 0.91. The kernel SVM classifier outperforms k-NN and LDA. 
+We fit the multiclass SVM model using One-vs-One approach, with using radial basis kernel. The overall mis-classification rate of kernel SVM is 0.092 and the testing accuracy is 0.908. The kernel SVM classifier outperforms k-NN and random forest. 
 
 ```{r, echo=F, warning=F, fig.align='center', fig.cap='Kernel SVM (rbf)', fig.subcap= c('Confusion Matrix', 'Mis-classification Rate', '1', '2'), out.width = '50%'}
 colnames(misclass_svm) = c("class", "mis-classification")
@@ -155,9 +160,9 @@ grid.newpage()
 grid.table(rbind(misclass_svm, c("overall", round(overall_misclass_svm,3))), theme = ttheme_minimal())
 ```
 
-In addition, a linear SVM model is constructed to compare with the RBF kernel. The overall mis-classification rate of linear SVM is 0.188 and the accuracy is 0.812.
+In addition, a linear SVM model is constructed to compare with the RBF kernel. The overall mis-classification rate of linear SVM is 0.188 and the testing accuracy is 0.812.
 
-Though linear SVM model does not perform better than k-NN and LDA, SVM with RBF kernel have a quite good performance on classification, which achieves an overall accuracy of 91%.
+Though linear SVM model does not perform better than k-NN and random forest, SVM with RBF kernel have a quite good performance on classification, which achieves an overall accuracy of 90.8%.
 
 ```{r, echo=F, warning=F, fig.align='center', fig.cap='Linear SVM', fig.subcap= c('Confusion Matrix', 'Mis-classification Rate'), out.width = '50%'}
 colnames(misclass_lsvm) = c("class", "mis-classification")
@@ -168,10 +173,10 @@ grid.table(rbind(misclass_svm, c("overall", round(overall_misclass_lsvm,3))), th
 
 ## Conclusion
 
-In this part, we build k-NN, LDA, linear SVM and kernel SVM to classify Fashion-MNIST data. The performace of different algorithms are shown in the table. The accuracy of four methods: kernel SVM > k-NN > LDA > linear SVM.
+In this part, we build k-NN, random forest, linear SVM and kernel SVM to classify Fashion-MNIST data. The testing accuracy of different algorithms are shown in the table. The testing accuracy of four methods: kernel SVM > random forest > k-NN > linear SVM.
 
 ```{r, echo=F, warning=F, fig.align='center'}
-model_summary = data.frame("kNN"=1-overall_misclass, "LDA"=1-overall_misclass_lda, "linear SVM"=1-overall_misclass_lsvm, "kernel SVM"=1-overall_misclass_svm)
+model_summary = data.frame("kNN"=1-overall_misclass, "Random Forest"=1-overall_misclass_tree, "Linear SVM"=1-overall_misclass_lsvm, "Kernel SVM"=1-overall_misclass_svm)
 row.names(model_summary) = c("Accuracy")
 kable(model_summary, format="latex", caption="Model Summary")%>%kable_styling(position = "center", latex_options = "HOLD_position")
 ```
