@@ -1,0 +1,82 @@
+---
+title: 'STAT 542: Final Project'
+author: "Karthik Vasu (kvasu2), Yining Lu (yining13)"
+date: 'Due: 05/05/2022'
+theme: readable
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: 2
+bibliography: references.bib
+header-includes:
+  - \usepackage{amsmath}
+  - \usepackage{subfig}
+---
+
+# Ensemble Model
+
+## First Stage
+
+```{r, echo=FALSE}
+train = read.csv("fashion-mnist_train.csv")
+test = read.csv("fashion-mnist_test.csv")
+
+Xtrain = train[,2:785]
+Ytrain = train[,1]
+
+Xtest = test[,2:785]
+Ytest = test[,1]
+
+```
+```{r}
+library(plyr)
+set.seed(1)
+
+pca = princomp(Xtrain)
+```
+```{r}
+elbow=count(pca$sdev > 1.75)$freq[2]
+X.pca = pca$scores[,1:10]
+```
+
+
+### Model 1: SVM
+```{r, warning=F}
+# first stage with svm
+library(kernlab)
+k = 1
+index = list()
+svm.fit = list()
+mXtrain = as.matrix(X.pca)
+for (i in 1:10) {
+  index[[i]] = which(Ytrain == i-1)
+}
+for (i in 1:10) {
+    ind = index[[i]]
+    y = rep(0, nrow(mXtrain))
+    y[ind] = 1
+    svm.fit[[i]] = ksvm(mXtrain, y, type="C-svc", kernel="rbfdot",
+                        C=10, scaled=c(), prob.model = TRUE)
+    print(i)
+}
+```
+
+```{r, warning=F}
+# get probabilities for each class
+prob = matrix(NA, nrow=nrow(mXtrain), ncol=10)
+for (i in 1:10) {
+  prob[,i] = predict(svm.fit[[i]], Xtrain, type="probabilities")[,2]
+}
+```
+
+
+### Model 2: LDA
+```{r}
+
+```
+
+
+
+## Second Stage
+
+
