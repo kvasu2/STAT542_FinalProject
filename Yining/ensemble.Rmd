@@ -18,8 +18,9 @@ test = read.csv("dataset/fashion-mnist_test.csv")
 ```
 
 ```{r, warning=F}
-Xtrain = train[1:6000,2:785]
-Ytrain = train[1:6000,1]
+Xtrain = train[,2:785]
+Ytrain = train[,1]
+mXtrain = as.matrix(Xtrain)
 
 Xtest = test[,2:785]
 Ytest = test[,1]
@@ -34,54 +35,108 @@ table(Ytrain)
 table(Ytest)
 ```
 
-# Ensemble Model
+# Pre-process
 
-```{r, warning=F}
-# first stage with svm
+```{r}
+trainMean = apply(Xtrain,2,mean)
+trainSd = apply(Xtrain,2,sd)
+Xtrain.sca = scale(Xtrain)
+Xtest.sca = sweep(sweep(Xtest, 2L, trainMean), 2, trainSd, "/")
+```
+
+```{r, echo=FALSE}
+library(plyr)
+set.seed(1)
+pca = princomp(Xtrain.sca)
+elbow = count(pca$sdev > 1.75)$freq[2]
+X.pca = pca$scores[,1:elbow]
+```
+
+# SVM with PCA
+
+```{r}
 library(kernlab)
 k = 1
 index = list()
 svm.fit = list()
-mXtrain = as.matrix(Xtrain)
 for (i in 1:10) {
   index[[i]] = which(Ytrain == i-1)
 }
-for (i in 1:10) {
-    ind = index[[i]]
-    y = rep(0, nrow(mXtrain))
-    y[ind] = 1
-    svm.fit[[i]] = ksvm(mXtrain, y, type="C-svc", kernel="rbfdot",
-                        C=10, scaled=c(), prob.model = TRUE)
-    #print(i)
+for (i in 1:9) {
+  for (j in (i+1):10) {
+    ind = c(index[[i]], index[[j]])
+    x = X.pca[ind,]
+    y = c(rep(1, length(index[[i]])), rep(0, length(index[[j]])))
+    svm.fit[[k]] = ksvm(x, y, type="C-svc", kernel="rbfdot", C=100, scaled=c())
+    k = k+1
+    #print(k)
+  }
 }
 ```
 
-```{r, warning=F}
-# get probabilities for each class
-prob = matrix(NA, nrow=nrow(mXtrain), ncol=10)
-for (i in 1:10) {
-  prob[,i] = predict(svm.fit[[i]], Xtrain, type="probabilities")[,2]
+```{r}
+# predict by SVM with PCA
+Xtest.pca = predict(pca, Xtest.sca)[,1:elbow]
+vote = list()
+for (i in 1:45) {
+  vote[[i]] = predict(svm.fit[[i]], Xtest.pca)
 }
-```
-
-```{r, warning=F}
-# second stage with random forest
-set.seed(2)
-library(randomForest)
-rf.fit = randomForest(as.factor(Ytrain)~., data=data.frame(prob, Ytrain), proximity=T)
-print(rf.fit)
-```
-
-```{r, warning=F}
-prob_pred = matrix(NA, nrow=nrow(Xtest), ncol=10)
-for (i in 1:10) {
-  prob_pred[,i] = predict(svm.fit[[i]], Xtest, type="probabilities")[,2]
+Ytest_pred_psvm = rep(NA, length(Ytest))
+for (l in 1:length(Ytest)) {
+  k = 1
+  vote_list = c()
+  for (i in 1:9) {
+    for (j in (i+1):10) {
+      if (vote[[k]][l] == 1)
+        current_vote = i-1
+      else
+        current_vote = j-1
+      vote_list = c(vote_list, current_vote)
+      k = k + 1
+    }
+  }
+  Ytest_pred_psvm[l] = names(which.max(table(vote_list)))
 }
+# confusion matrix
+confuse_psvm = table(Ytest, Ytest_pred_psvm)
+# mis-classification rate
+misclass_rate_psvm = rep(NA, 10)
+for (i in 1:10) {
+  misclass_rate_psvm[i] = 1 - confuse_psvm[i,i]/sum(confuse_psvm[,i])
+}
+class = 0:9
+misclass_psvm = cbind(class, round(misclass_rate_psvm,3))
+# overall mis-classification rate
+overall_misclass_psvm = mean(Ytest_pred_psvm != Ytest)
+confuse_psvm
+misclass_psvm
+overall_misclass_psvm
+```
+
+# Ensemble Model
+
+```{r}
+load("RData/knn.RData")
+load("RData/rf_svm.RData")
 ```
 
 ```{r, warning=F}
+Ytest_pred_en = rep(NA, nrow(Xtest))
+Ytest_pred_svm = as.factor(Ytest_pred_svm)
+Ytest_pred_psvm = as.factor(Ytest_pred_psvm)
 # error for ensemble model
-Ytest_pred_en <- predict(rf.fit, data.frame(prob_pred, Ytest))
+for (i in 1:nrow(Xtest)) {
+  label_vote = rep(0, nrow(Xtest))
+  knn_vote = Ytest_pred[i]
+  svm_vote = Ytest_pred_svm[i]
+  psvm_vote = Ytest_pred_psvm[i]
+  tree_vote = Ytest_pred_tree[i]
+  label_vote[knn_vote] = label_vote[knn_vote]+1
+  label_vote[svm_vote] = label_vote[svm_vote]+2
+  label_vote[psvm_vote] = label_vote[psvm_vote]+2
+  label_vote[tree_vote] = label_vote[tree_vote]+1
+  Ytest_pred_en[i] = which.max(label_vote)-1
+}
 # confusion matrix
 confuse_en = table(Ytest, Ytest_pred_en)
 # mis-classification rate
@@ -97,29 +152,6 @@ overall_misclass_en = mean(Ytest_pred_en != Ytest)
 confuse_en
 misclass_en
 overall_misclass_en
-```
-
-```{r, warning=F}
-# error for pure svm
-Ytest_pred_ksvm = rep(NA, nrow(Xtest))
-for (i in 1:nrow(Xtest)) {
-  Ytest_pred_ksvm[i] = which.max(prob_pred[i,])-1
-}
-# confusion matrix
-confuse_ksvm = table(Ytest, Ytest_pred_ksvm)
-# mis-classification rate
-misclass_rate_ksvm = rep(NA, 10)
-number = rep(NA, 10)
-for (i in 1:10) {
-  misclass_rate_ksvm[i] = 1 - confuse_ksvm[i,i]/sum(confuse_ksvm[,i])
-}
-class = 0:9
-misclass_ksvm = cbind(class, round(misclass_rate_ksvm,3))
-# overall mis-classification rate
-overall_misclass_ksvm = mean(Ytest_pred_ksvm != Ytest)
-confuse_ksvm
-misclass_ksvm
-overall_misclass_ksvm
 ```
 
 # Save

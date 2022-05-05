@@ -32,11 +32,13 @@ table(Ytrain)
 table(Ytest)
 ```
 
-# Pre processing
+# Pre-Process
 
 ```{r}
-Xtrain = scale(Xtrain)
-Ytrain = scale(Ytrain)
+trainMean = apply(Xtrain,2,mean)
+trainSd = apply(Xtrain,2,sd)
+Xtrain.sca = scale(Xtrain)
+Xtest.sca = sweep(sweep(Xtest, 2L, trainMean), 2, trainSd, "/")
 ```
 
 # kNN
@@ -71,7 +73,6 @@ Ytest_pred = knn(Xtrain, Xtest, Ytrain, k=best_k)
 confuse = table(Ytest, Ytest_pred)
 # mis-classification rate
 misclass_rate = rep(NA, 10)
-number = rep(NA, 10)
 for (i in 1:10) {
   misclass_rate[i] = 1 - confuse[i,i]/sum(confuse[,i])
 }
