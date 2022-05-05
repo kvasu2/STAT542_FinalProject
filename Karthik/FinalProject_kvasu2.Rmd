@@ -10,6 +10,7 @@ output:
 bibliography: references.bib
 header-includes:
   - \usepackage{amsmath}
+  - \usepackage{subfig}
 ---
 
 # Literature review
@@ -62,9 +63,12 @@ pca = princomp(X.train.sca)
 ```
 
 ```{r, echo=FALSE}
+png(file="pca_sd.png")
 plot(pca$sdev,ylab = "Standard Deviation")
 elbow=count(pca$sdev > 1.75)$freq[2]
 X.pca = pca$scores[,1:elbow]
+
+dev.off()
 ```
 
 # Clustering
@@ -100,7 +104,9 @@ for (l in 1:length(allk)) {
 
 
 ```{r, echo=FALSE}
+png(file="best_k.png")
 plot(allk,wcc,xlab = "K", ylab = "Cluster confidence",pch=19)
+dev.off()
 ```
 
 From this plot we can see that as we increase K the confidence increases. We choose K=100 so that to get the best clustering while keeping computation time low.
@@ -131,6 +137,7 @@ The majority label in each cluster and the cluster confidence % are as follows
 weighted_cluster_confidence =100* (t(cluster_confidence[,1]) %*% cluster_confidence[,2])/sum(cluster_confidence[,2])
 cluster_prediction
 weighted_cluster_confidence
+write.csv(cluster_prediction, file = "kmeans_prediction.csv",row.names = FALSE, col.names = FALSE)
 ```
 
 ```{r, echo=FALSE}

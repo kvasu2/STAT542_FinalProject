@@ -1,0 +1,173 @@
+---
+title: 'STAT 542: Final Project'
+author: "Karthik Vasu (kvasu2), Yining Lu (yining13)"
+date: 'Due: 05/05/2022'
+theme: readable
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: 2
+bibliography: references.bib
+header-includes:
+  - \usepackage{amsmath}
+  - \usepackage{subfig}
+---
+
+# Literature review
+
+The Fashion-MNIST data set has been created by researchers at Zalando for the purposes of benchmarking ML algorithms. It consists of 70000 grayscale images of dimension 28*28. These are images of clothing articles like T-shirt, Trouser, Pullover etc with 60000 training samples and 10000 testing samples. The purpose of this data set is to provide a more challenging classifying compared to the original MNIST data. There are algorithms which 99% accuracy on this making it too easy for modern algorithms.
+
+The best accuracy we found was by a GitHub user named [_Andy Brock_](https://github.com/ajbrock) who was able to achieve an accuracy of 96.7% using wide residual networks. A lot of people have implemented algorithms with high accuracy. They can be for on [_Zalando Research's GitHub page_](https://github.com/zalandoresearch/fashion-mnist).
+
+@xiao2017/online test out a variety of classifiers including Decision Tree ,Gradient Boosting, K Neighbors, Linear SVC, Logistic Regression and many more. They achieve the best result using the SVC classifier with C=10 and the rbf kernel. The testing accuracy for this algorithm is 89.7% on the fashion data set and 97.3% on the original MNIST data. Gradient boosting performs well with testing accuracy at 88% and 96.9% respectively. This is achieved for n_estimators=100 and max_depth=10.
+
+@meshkini2019analysis perform classification on the Fashion-MNIST data set using convolutional neural networks. They compare the performance of several well-known deep learning frameworks, such as AlexNet, GoogleNet, VGG and ResNet, DenseNet and SqueezeNet. The authors also propose an additional step of batch normalization to enhance the training speed and accuracy of the model. The best results are achieved by ResNet44 and SqueezeNet with batch normalization with testing accuracy at 93.39% and 93.43% respectively. 
+
+
+```{r, echo=FALSE, warning=FALSE}
+library(knitr)
+library(kableExtra)
+library(gridExtra)
+library(grid)
+```
+
+```{r, echo=FALSE}
+train = read.csv("Karthik/fashion-mnist_train.csv")
+test = read.csv("Karthik/fashion-mnist_test.csv")
+
+Xtrain = train[,2:785]
+Ytrain = train[,1]
+
+Xtest = test[,2:785]
+Ytest = test[,1]
+```
+
+# Summary Statistics
+
+Data table
+```{r, echo=FALSE}
+table(Ytrain)
+table(Ytest)
+```
+
+
+# Pre processing
+
+Before using PCA we have scaled and centered the data.
+
+
+## PCA
+
+We perform PCA on the training data set and plot the standard deviation of each of the components in descending order. Using the elbow method the cutoff we choose is 1.75 and take all the components which have standard deviation above that value. It gives 28 components.
+
+```{r, echo=F, warning=F, fig.align='center', out.height='50%', out.width = '50%'}
+include_graphics("Karthik/data/pca_sd.png")
+```
+
+# Clustering
+
+
+## Kmeans
+
+To first determine which K to use we run the kmeans algorithm for k =10,20,...,100 and measure for each cluster the ration # of votes the majority label got/ total number of elements in the clustes. We also sum over all the clusters by weighing the ratios according to the cluster size. The plot of this cluster confidence vs K is as follows.
+
+
+```{r, echo=FALSE ,fig.align='center', fig.cap='Cluster confidence vs K', out.height='50%', out.width = '50%'}
+include_graphics("Karthik/data/best_k.png")
+```
+
+From this plot we can see that as we increase K the confidence increases. We choose K=100 so that to get the best clustering while keeping computation time low.
+
+The cluster confidence is 73.58% and the majority label in each cluster are as follows
+
+```{r, echo=FALSE}
+
+cluster_prediction = t(read.csv("Karthik/data/kmeans_prediction.csv"))
+print(cluster_prediction)
+```
+ 
+# Classification
+
+In this section, we implement multi-class classification models on the Fashion-MNIST dataset. We first use two algorithms, k-Nearest Neighbor (k-NN) and Linear Discriminant Analysis (LDA), which can be directly used for multiclass classification. Then, we extend Support Vector Machine (SVM), which is a binary classifier, to handle the multiclass case.
+
+## k-Nearest Neighbors
+
+We first implement k-NN classification model to classify the Fashion-MNIST data. The Euclidean distance is used to measure the distance between variables. The raw data are scaled in the data pre-processing step, so the distance is scale-invariant.
+
+To determine the parameter k, we use 5-fold cross-validation and calculate the overall mis-classification rate for each k. The figure shows the relation between mis-classification rate and k. We find that the best mis-classification rate is reached at $k = 10$.
+
+```{r, echo=F, warning=F, fig.align='center', fig.cap='5-fold CV Mis-classification Rate', out.height='50%', out.width = '50%'}
+load("Yining/RData/knn.RData")
+
+include_graphics("Yining/graph/knn_cv.png")
+```
+
+Based on the result of cross-valiadation, we choose $k = 10$ to fit the k-NN model. The confusion matrix and mis-classification rate for each class are shown in the following two tables. For Fashion-MNIST data, the overall mis-classification rate of the 10-NN classifier is 0.144 and the accuracy is 0.856.
+
+```{r, echo=F, warning=F, fig.align='center', fig.cap='10-NN', fig.subcap= c('Confusion Matrix', 'Mis-classification Rate'), out.width = '50%'}
+colnames(misclass) = c("class", "mis-classification")
+include_graphics("Yining/graph/knn_confuse.png")
+grid.newpage()
+grid.table(rbind(misclass, c("overall", round(overall_misclass,3))), theme = ttheme_minimal())
+```
+
+## LDA
+
+We then classify the Fashion-MNIST data using the LDA classifier. The confusion matrix and mis-classification rate for each class are shown in the following two tables. The overall mis-classification rate of the LDA classifier is 0.174 and the accuracy is 0.826. We find that the accuracy of LDA classifier is slightly lower than that of 10-kNN classifer. 
+
+```{r, echo=F, warning=F, fig.align='center', fig.cap='LDA', fig.subcap= c('Confusion Matrix', 'Mis-classification Rate'), out.width = '50%'}
+load("Yining/RData/lda_svm.RData")
+colnames(misclass_lda) = c("class", "mis-classification")
+include_graphics("Yining/graph/lda_confuse.png")
+grid.newpage()
+grid.table(rbind(misclass_lda, c("overall", round(overall_misclass_lda,3))), theme = ttheme_minimal())
+```
+
+## SVM
+
+We have applied two multiclass classifiers k-NN and LDA for the Fashion-MNIST classification. Now, we extend SVM to the multiclass form to solve the classification problem. SVM is a binary classifier and it does not support multiclass classification natively. However, we can break the multiclass classification problem into several binary ones. There are two common methods to extend SVM for multiclass classification, One-vs-One approach and One-vs-Rest approach. 
+
+In One-vs-One approach, we fit SVM models for every two classes. Each classifier separates points of two different classes. Suppose we have k classes, we then fit $\frac{k(k-1)}{2}$ SVM models. In prediction stage, we input data into all binary classifiers. Each binary classifiers will decide a class that the input is belonged to. We let those binary classifiers vote for the class of input, and the prediction result is the class that most classifiers vote for.
+
+In One-vs-Rest approach, we fit SVM models to distinguish points of one certain class from the other classes. Suppose we have k classes, we then fit k SVM models. In prediction stage, we input data into all One-vs-Rest classifiers. Each classifier will give a probability that the input is belonged to that class. The prediction result is the class with the largest probability.
+
+One-vs-Rest approach is more computationally efficient than One-vs-One approach, since it only need to fit k SVM models while One-vs-One approach need to fit $\frac{k(k-1)}{2}$ models. However, in One-vs-Rest approach, the training data is unbalanced since the ratio of training data from each class is $1:(k-1)$, which may cause biase.
+
+We fit the multiclass SVM model using One-vs-One approach, with using radial basis kernel. The overall mis-classification rate of kernel SVM is 0.09 and the accuracy is 0.91. The kernel SVM classifier outperforms k-NN and LDA. 
+
+```{r, echo=F, warning=F, fig.align='center', fig.cap='Kernel SVM (rbf)', fig.subcap= c('Confusion Matrix', 'Mis-classification Rate', '1', '2'), out.width = '50%'}
+colnames(misclass_svm) = c("class", "mis-classification")
+include_graphics("Yining/graph/svm_confuse.png")
+grid.newpage()
+grid.table(rbind(misclass_svm, c("overall", round(overall_misclass_svm,3))), theme = ttheme_minimal())
+```
+
+In addition, a linear SVM model is constructed to compare with the RBF kernel. The overall mis-classification rate of linear SVM is 0.188 and the accuracy is 0.812.
+
+Though linear SVM model does not perform better than k-NN and LDA, SVM with RBF kernel have a quite good performance on classification, which achieves an overall accuracy of 91%.
+
+```{r, echo=F, warning=F, fig.align='center', fig.cap='Linear SVM', fig.subcap= c('Confusion Matrix', 'Mis-classification Rate'), out.width = '50%'}
+colnames(misclass_lsvm) = c("class", "mis-classification")
+include_graphics("Yining/graph/lsvm_confuse.png")
+grid.newpage()
+grid.table(rbind(misclass_svm, c("overall", round(overall_misclass_lsvm,3))), theme = ttheme_minimal())
+```
+
+## Conclusion
+
+In this part, we build k-NN, LDA, linear SVM and kernel SVM to classify Fashion-MNIST data. The performace of different algorithms are shown in the table. The accuracy of four methods: kernel SVM > k-NN > LDA > linear SVM.
+
+```{r, echo=F, warning=F, fig.align='center'}
+model_summary = data.frame("kNN"=1-overall_misclass, "LDA"=1-overall_misclass_lda, "linear SVM"=1-overall_misclass_lsvm, "kernel SVM"=1-overall_misclass_svm)
+row.names(model_summary) = c("Accuracy")
+kable(model_summary, format="latex", caption="Model Summary")%>%kable_styling(position = "center", latex_options = "HOLD_position")
+```
+ 
+ 
+
+# References
+
+
+
+
+
