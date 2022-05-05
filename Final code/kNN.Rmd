@@ -1,0 +1,89 @@
+---
+title: 'STAT 542: Final Project'
+author: "Karthik Vasu (kvasu2), Yining Lu (yining13)"
+date: 'Due: 05/05/2022'
+theme: readable
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: 2
+bibliography: references.bib
+header-includes:
+  - \usepackage{amsmath}
+---
+
+```{r, echo=FALSE}
+train = read.csv("dataset/fashion-mnist_train.csv")
+test = read.csv("dataset/fashion-mnist_test.csv")
+
+Xtrain = train[,2:785]
+Ytrain = train[,1]
+
+Xtest = test[,2:785]
+Ytest = test[,1]
+```
+
+# Summary Statistics
+
+Data table
+
+```{r, echo=FALSE}
+table(Ytrain)
+table(Ytest)
+```
+
+# Pre-Process
+
+```{r}
+trainMean = apply(Xtrain,2,mean)
+trainSd = apply(Xtrain,2,sd)
+Xtrain.sca = scale(Xtrain)
+Xtest.sca = sweep(sweep(Xtest, 2L, trainMean), 2, trainSd, "/")
+```
+
+# kNN
+
+```{r}
+# kNN
+library(class)
+# 5-fold cross validation
+nfold = 5
+infold = sample(rep(1:nfold, length.out=nrow(Xtrain)))
+allk = c(1:20)
+errMatrix = matrix(NA, length(allk), nfold)
+for (i in 1:nfold) {
+  for (k in 1:length(allk)) {
+    class_knn = knn(Xtrain[infold!=i,], Xtrain[infold==i,], Ytrain[infold!=i], k=k)
+    errMatrix[k,i] = mean(class_knn != Ytrain[infold==i])
+  }
+}
+# Error vs k
+plot(allk, apply(errMatrix,1,mean), main="k-NN", xlab="k", 
+     ylab="mis-classification rate", col="deepskyblue", type="l", lwd=2)
+best_k = allk[which.min(apply(errMatrix,1,mean))]
+best_k
+```
+
+```{r}
+Ytest_pred = knn(Xtrain, Xtest, Ytrain, k=best_k)
+```
+
+```{r}
+# confusion matrix
+confuse = table(Ytest, Ytest_pred)
+# mis-classification rate
+misclass_rate = rep(NA, 10)
+for (i in 1:10) {
+  misclass_rate[i] = 1 - confuse[i,i]/sum(confuse[,i])
+}
+class = 0:9
+misclass = cbind(class, round(misclass_rate,3))
+# overall mis-classification rate
+overall_misclass = mean(Ytest_pred != Ytest)
+```
+
+# Save
+
+```{r}
+save.image(file ="RData/knn.RData")
+```

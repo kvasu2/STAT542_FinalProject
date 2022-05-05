@@ -1,0 +1,161 @@
+---
+title: 'STAT 542: Final Project'
+author: "Karthik Vasu (kvasu2), Yining Lu (yining13)"
+date: 'Due: 05/05/2022'
+theme: readable
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: 2
+bibliography: references.bib
+header-includes:
+  - \usepackage{amsmath}
+---
+
+```{r, echo=FALSE}
+train = read.csv("dataset/fashion-mnist_train.csv")
+test = read.csv("dataset/fashion-mnist_test.csv")
+```
+
+```{r, warning=F}
+Xtrain = train[,2:785]
+Ytrain = train[,1]
+mXtrain = as.matrix(Xtrain)
+
+Xtest = test[,2:785]
+Ytest = test[,1]
+```
+
+# Summary Statistics
+
+Data table
+
+```{r, echo=FALSE}
+table(Ytrain)
+table(Ytest)
+```
+
+# Pre-process
+
+```{r}
+trainMean = apply(Xtrain,2,mean)
+trainSd = apply(Xtrain,2,sd)
+Xtrain.sca = scale(Xtrain)
+Xtest.sca = sweep(sweep(Xtest, 2L, trainMean), 2, trainSd, "/")
+```
+
+```{r, echo=FALSE}
+library(plyr)
+set.seed(1)
+pca = princomp(Xtrain.sca)
+elbow = count(pca$sdev > 1.75)$freq[2]
+X.pca = pca$scores[,1:elbow]
+```
+
+# SVM with PCA
+
+```{r}
+library(kernlab)
+k = 1
+index = list()
+svm.fit = list()
+for (i in 1:10) {
+  index[[i]] = which(Ytrain == i-1)
+}
+for (i in 1:9) {
+  for (j in (i+1):10) {
+    ind = c(index[[i]], index[[j]])
+    x = X.pca[ind,]
+    y = c(rep(1, length(index[[i]])), rep(0, length(index[[j]])))
+    svm.fit[[k]] = ksvm(x, y, type="C-svc", kernel="rbfdot", C=100, scaled=c())
+    k = k+1
+    #print(k)
+  }
+}
+```
+
+```{r}
+# predict by SVM with PCA
+Xtest.pca = predict(pca, Xtest.sca)[,1:elbow]
+vote = list()
+for (i in 1:45) {
+  vote[[i]] = predict(svm.fit[[i]], Xtest.pca)
+}
+Ytest_pred_psvm = rep(NA, length(Ytest))
+for (l in 1:length(Ytest)) {
+  k = 1
+  vote_list = c()
+  for (i in 1:9) {
+    for (j in (i+1):10) {
+      if (vote[[k]][l] == 1)
+        current_vote = i-1
+      else
+        current_vote = j-1
+      vote_list = c(vote_list, current_vote)
+      k = k + 1
+    }
+  }
+  Ytest_pred_psvm[l] = names(which.max(table(vote_list)))
+}
+# confusion matrix
+confuse_psvm = table(Ytest, Ytest_pred_psvm)
+# mis-classification rate
+misclass_rate_psvm = rep(NA, 10)
+for (i in 1:10) {
+  misclass_rate_psvm[i] = 1 - confuse_psvm[i,i]/sum(confuse_psvm[,i])
+}
+class = 0:9
+misclass_psvm = cbind(class, round(misclass_rate_psvm,3))
+# overall mis-classification rate
+overall_misclass_psvm = mean(Ytest_pred_psvm != Ytest)
+confuse_psvm
+misclass_psvm
+overall_misclass_psvm
+```
+
+# Ensemble Model
+
+```{r}
+load("RData/knn.RData")
+load("RData/rf_svm.RData")
+```
+
+```{r, warning=F}
+Ytest_pred_en = rep(NA, nrow(Xtest))
+Ytest_pred_svm = as.factor(Ytest_pred_svm)
+Ytest_pred_psvm = as.factor(Ytest_pred_psvm)
+# error for ensemble model
+for (i in 1:nrow(Xtest)) {
+  label_vote = rep(0, nrow(Xtest))
+  knn_vote = Ytest_pred[i]
+  svm_vote = Ytest_pred_svm[i]
+  psvm_vote = Ytest_pred_psvm[i]
+  tree_vote = Ytest_pred_tree[i]
+  label_vote[knn_vote] = label_vote[knn_vote]+1
+  label_vote[svm_vote] = label_vote[svm_vote]+2
+  label_vote[psvm_vote] = label_vote[psvm_vote]+2
+  label_vote[tree_vote] = label_vote[tree_vote]+1
+  Ytest_pred_en[i] = which.max(label_vote)-1
+}
+# confusion matrix
+confuse_en = table(Ytest, Ytest_pred_en)
+# mis-classification rate
+misclass_rate_en = rep(NA, 10)
+number = rep(NA, 10)
+for (i in 1:10) {
+  misclass_rate_en[i] = 1 - confuse_en[i,i]/sum(confuse_en[,i])
+}
+class = 0:9
+misclass_en = cbind(class, round(misclass_rate_en,3))
+# overall mis-classification rate
+overall_misclass_en = mean(Ytest_pred_en != Ytest)
+confuse_en
+misclass_en
+overall_misclass_en
+```
+
+# Save
+
+```{r, echo=F}
+save.image(file ="RData/ensemble.RData")
+```
