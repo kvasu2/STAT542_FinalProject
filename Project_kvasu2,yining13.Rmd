@@ -14,6 +14,18 @@ header-includes:
 ---
 \newpage
 
+# Project Summary
+
+This project is on implementing classification algorithm on the Fashion-MNIST dataset. To begin with we pre process the data using PCA to extract enough useful information so that the data contains a signal but also reduce it enough for the algorithms to be fast.
+
+First we try a Kmeans unsupervised algorithm to cluster the data hoping that it will be able to divide the labels. Unfortunately the clusters we get even with taking K=100 don't have a uniform label. There are a lot of mixed labels in each cluster. The ratio of majority vote in cluster to total cluster size we get is 73%, which is low.
+
+Next we try supervised learning. We try 4 different methods. LDA, kNN, linear SVM and kernel SVM. We use 5 fold cross validation to tune the parameter k in kNN. The best k we achieve is k=10. This 10-NN algorithm gives us an accuracy of 85.6%. This is slightly higher than the LDA case where the accuracy is 82.6%. The SVM clssifier is a binary classifier which we adapt to our multi class classification by using two approaches. One vs Rest and One vs One. We use the One vs One approach which achieves an accuracy of 81.2% in the linear version and 91% in the kernel version. This clearly outperforms the previous two algorithms.
+
+Finally we create and ensemble model using multiple classifiers. We use kNN, random forest, kernel SVM and PCA-SVM(SVM after performing PCA). After fitting these models we use the majority vote to predict the final label. The ensemble model performs marginally better than the SVM model to get an accuracy of 91.8%.
+
+In conclusion the ensemble model performs the best, but it has high computational cost as it has to train multiple models. The advantage of the ensemble model is that it is flexible.
+
 # Literature review
 
 The Fashion-MNIST data set has been created by researchers at Zalando for the purposes of benchmarking ML algorithms. It consists of 70000 grayscale images of dimension 28*28. These are images of clothing articles like T-shirt, Trouser, Pullover etc with 60000 training samples and 10000 testing samples. The purpose of this data set is to provide a more challenging classifying compared to the original MNIST data. There are algorithms which 99% accuracy on this making it too easy for modern algorithms.
