@@ -1,0 +1,140 @@
+---
+title: 'STAT 542: Final Project'
+author: "Karthik Vasu (kvasu2), Yining Lu (yining13)"
+date: 'Due: 05/05/2022'
+theme: readable
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: 2
+bibliography: references.bib
+header-includes:
+  - \usepackage{amsmath}
+  - \usepackage{subfig}
+---
+
+
+```{r, echo=FALSE}
+train = read.csv("fashion-mnist_train.csv")
+test = read.csv("fashion-mnist_test.csv")
+
+Xtrain = train[,2:785]
+Ytrain = train[,1]
+
+Xtest = test[,2:785]
+Ytest = test[,1]
+```
+
+
+# Pre processing
+
+Before using PCA we have scaled and centered the data.
+
+```{r, echo=FALSE}
+X.train.sca = scale(Xtrain)
+```
+
+## 1.PCA
+
+We perform PCA on the training data set and plot the standard deviation of each of the components in descending order. Using the elbow method the cutoff we choose is 1.75 and take all the components which have standard deviation above that value. It gives 28 components.
+
+```{r , echo=FALSE}
+library(plyr)
+set.seed(1)
+
+pca = princomp(X.train.sca)
+```
+
+```{r, echo=FALSE}
+png(file="pca_sd.png")
+plot(pca$sdev,ylab = "Standard Deviation")
+elbow=count(pca$sdev > 1.75)$freq[2]
+X.pca = pca$scores[,1:elbow]
+
+dev.off()
+```
+
+# Clustering
+
+## Kmeans
+
+To first determine which K to use we run the kmeans algorithm for k =10,20,...,100 and measure for each cluster the ration # of votes the majority label got/ total number of elements in the clustes. We also sum over all the clusters by weighing the ratios according to the cluster size. The plot of this cluster confidence vs K is as follows.
+```{r, echo=FALSE, warning=FALSE}
+allk = seq(10,100,10)
+wcc = rep(NA,length(allk))
+
+for (l in 1:length(allk)) {
+  k = allk[l]
+  kmeans = kmeans(X.pca, centers =k)
+
+  cluster_prediction = rep(NA,k)
+  #cluster_accuracy = matrix(rep(NA,2*k), nrow = k)
+  cluster_confidence = matrix(nrow = k,ncol = 2)
+  clusters = split(Ytrain,kmeans$cluster)
+  for (i in 1:k) {
+    x = as.data.frame(unlist(clusters[i]))
+    y = count(x)
+    max = which.max(y[,2])
+    cluster_prediction[i] = y[max,1]
+    s = sum(y[,2])
+    cluster_confidence[i,1] = y[max,2]/s
+    cluster_confidence[i,2] = s
+  }
+  
+  wcc[l] =(t(cluster_confidence[,1]) %*% cluster_confidence[,2])/sum(cluster_confidence[,2])
+}
+```
+
+
+```{r, echo=FALSE}
+png(file="best_k.png")
+plot(allk,wcc,xlab = "K", ylab = "Cluster confidence",pch=19)
+dev.off()
+```
+
+From this plot we can see that as we increase K the confidence increases. We choose K=100 so that to get the best clustering while keeping computation time low.
+
+
+```{r, echo=FALSE, warning=FALSE}
+k=100
+kmeans = kmeans(X.pca, centers =k)
+
+cluster_prediction = rep(NA,k)
+#cluster_accuracy = matrix(rep(NA,2*k), nrow = k)
+cluster_confidence = matrix(nrow = k,ncol = 2)
+clusters = split(Ytrain,kmeans$cluster)
+for (i in 1:k) {
+  x = as.data.frame(unlist(clusters[i]))
+  y = count(x)
+  max = which.max(y[,2])
+  cluster_prediction[i] = y[max,1]
+  s = sum(y[,2])
+  cluster_confidence[i,1] = y[max,2]/s
+  cluster_confidence[i,2] = s
+}
+```
+
+The majority label in each cluster and the cluster confidence % are as follows
+
+```{r, echo=FALSE}
+weighted_cluster_confidence =100* (t(cluster_confidence[,1]) %*% cluster_confidence[,2])/sum(cluster_confidence[,2])
+cluster_prediction
+weighted_cluster_confidence
+write.csv(cluster_prediction, file = "kmeans_prediction.csv",row.names = FALSE, col.names = FALSE)
+```
+
+```{r, echo=FALSE}
+#This code is for visualizing this clusters and the first two components. Its not very informative.
+#library(cluster)
+#clusplot(X.pca,kmeans$cluster,color=T,shade=T)
+```
+
+
+
+
+# References
+
+
+
+
+
