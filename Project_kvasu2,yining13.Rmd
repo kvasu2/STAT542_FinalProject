@@ -55,6 +55,8 @@ Xtest = test[,2:785]
 Ytest = test[,1]
 ```
 
+\newpage
+
 # Summary Statistics
 
 Data table
@@ -76,6 +78,8 @@ We perform PCA on the training data set and plot the standard deviation of each 
 ```{r, echo=F, warning=F, fig.align='center', out.height='50%', out.width = '50%'}
 include_graphics("Karthik/data/pca_sd.png")
 ```
+
+\newpage
 
 # Clustering
 
